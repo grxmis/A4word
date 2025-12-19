@@ -196,19 +196,20 @@ export default function A4Composer() {
       {/* MAIN CONTENT */}
       <div className="flex flex-1 p-4 gap-4">
 
-        {/* TEMPLATE LIST - Vertical List Box */}
+        {/* TEMPLATE LIST - Vertical scrollable thumbnails */}
         <div className="bg-white rounded-xl shadow p-2 flex flex-col gap-2" style={{ width: 220, maxHeight: "calc(100vh - 32px)", overflowY: "auto" }}>
           <label className="font-bold mb-2 block text-center">Templates</label>
-          <select
-            className="w-full border rounded p-1"
-            value={template || ""}
-            onChange={e => selectTemplate(e.target.value)}
-          >
-            <option value="">-- Επιλέξτε template --</option>
+          <div className="flex flex-col gap-2">
             {templates.map(t => (
-              <option key={t.url} value={t.url}>{t.name}</option>
+              <img
+                key={t.url}
+                src={t.url}
+                alt={t.name}
+                className={`cursor-pointer rounded border ${template === t.url ? "border-blue-600" : "border-gray-300"}`}
+                onClick={() => selectTemplate(t.url)}
+              />
             ))}
-          </select>
+          </div>
         </div>
 
         {/* WORKSPACE */}
