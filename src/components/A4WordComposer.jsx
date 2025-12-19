@@ -4,7 +4,7 @@ const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
 
 /* ===============================
-   DRAGGABLE + RESIZABLE BOX
+   DRAGGABLE / RESIZABLE BOX
 ================================ */
 function DraggableResizableBox({
   x, y, width, height, onUpdate, children,
@@ -22,13 +22,8 @@ function DraggableResizableBox({
       const dy = e.clientY - start.current.my;
 
       if (drag) {
-        onUpdate({
-          ...start.current.box,
-          x: start.current.box.x + dx,
-          y: start.current.box.y + dy
-        });
+        onUpdate({ ...start.current.box, x: start.current.box.x + dx, y: start.current.box.y + dy });
       }
-
       if (resize) {
         onUpdate({
           ...start.current.box,
@@ -38,10 +33,7 @@ function DraggableResizableBox({
       }
     };
 
-    const stop = () => {
-      setDrag(false);
-      setResize(false);
-    };
+    const stop = () => { setDrag(false); setResize(false); };
 
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", stop);
@@ -71,7 +63,6 @@ function DraggableResizableBox({
       }}
     >
       {children}
-
       {enabled && (
         <div
           className="resize"
@@ -97,7 +88,7 @@ function DraggableResizableBox({
 }
 
 /* ===============================
-            MAIN APP
+              MAIN
 ================================ */
 export default function A4Composer() {
 
@@ -108,18 +99,10 @@ export default function A4Composer() {
   const [exporting, setExporting] = useState(false);
   const [libsReady, setLibsReady] = useState(false);
 
-  const [box, setBox] = useState({
-    x: 80,
-    y: 120,
-    width: 630,
-    height: 850
-  });
-
+  const [box, setBox] = useState({ x: 80, y: 120, width: 630, height: 850 });
   const measureRef = useRef(null);
 
-  /* ===============================
-      LOAD EXTERNAL LIBRARIES
-================================ */
+  /* Load libs */
   useEffect(() => {
     let loaded = 0;
     [
@@ -129,25 +112,16 @@ export default function A4Composer() {
     ].forEach(src => {
       const s = document.createElement("script");
       s.src = src;
-      s.onload = () => {
-        loaded++;
-        if (loaded === 3) setLibsReady(true);
-      };
+      s.onload = () => { if (++loaded === 3) setLibsReady(true); };
       document.body.appendChild(s);
     });
   }, []);
 
-  /* ===============================
-            TEMPLATES
-================================ */
-  const templates = [1, 2, 3, 4, 5].map(i => ({
+  const templates = [1,2,3,4,5].map(i => ({
     name: `Template ${i}`,
     url: `/templates/template${i}.png`
   }));
 
-  /* ===============================
-          LOAD WORD FILE
-================================ */
   const loadDoc = async file => {
     if (!libsReady || !file) return;
     const buffer = await file.arrayBuffer();
@@ -156,40 +130,30 @@ export default function A4Composer() {
     setPages([result.value]);
   };
 
-  /* ===============================
-            PAGINATION
-================================ */
   useEffect(() => {
     if (!docHtml || !measureRef.current) return;
-
     const c = measureRef.current;
     c.style.width = box.width + "px";
     c.style.fontSize = fontSize + "px";
     c.innerHTML = docHtml;
 
     const nodes = Array.from(c.children);
-    let current = [];
-    let result = [];
+    let cur = [], res = [];
     c.innerHTML = "";
 
     for (let n of nodes) {
       c.appendChild(n.cloneNode(true));
       if (c.scrollHeight > box.height) {
         c.innerHTML = "";
-        result.push(current.join(""));
-        current = [n.outerHTML];
+        res.push(cur.join(""));
+        cur = [n.outerHTML];
         c.innerHTML = n.outerHTML;
-      } else {
-        current.push(n.outerHTML);
-      }
+      } else cur.push(n.outerHTML);
     }
-    if (current.length) result.push(current.join(""));
-    setPages(result);
+    if (cur.length) res.push(cur.join(""));
+    setPages(res);
   }, [docHtml, fontSize, box.width, box.height]);
 
-  /* ===============================
-              RESET
-================================ */
   const resetAll = () => {
     setTemplate(null);
     setDocHtml("");
@@ -198,65 +162,58 @@ export default function A4Composer() {
     setBox({ x: 80, y: 120, width: 630, height: 850 });
   };
 
-  /* ===============================
-              PDF
-================================ */
   const exportPDF = async preview => {
     setExporting(true);
     await new Promise(r => setTimeout(r, 200));
-
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "mm", "a4");
 
-    const pagesEls = document.querySelectorAll(".a4");
-    for (let i = 0; i < pagesEls.length; i++) {
-      const canvas = await window.html2canvas(pagesEls[i], { scale: 2 });
+    const els = document.querySelectorAll(".a4");
+    for (let i = 0; i < els.length; i++) {
+      const c = await window.html2canvas(els[i], { scale: 2 });
       if (i) pdf.addPage();
-      pdf.addImage(canvas, "JPEG", 0, 0, 210, 297);
+      pdf.addImage(c, "JPEG", 0, 0, 210, 297);
     }
-
     setExporting(false);
-    preview
-      ? window.open(URL.createObjectURL(pdf.output("blob")))
-      : pdf.save("document.pdf");
+    preview ? window.open(URL.createObjectURL(pdf.output("blob"))) : pdf.save("document.pdf");
   };
 
-  /* ===============================
-                UI
-================================ */
   return (
     <div className="min-h-screen bg-gray-100 p-4 flex gap-4">
 
-      {/* LEFT – TEMPLATES */}
-      <div className="w-48 bg-white rounded-xl shadow p-2 flex flex-col gap-2 overflow-y-auto">
+      {/* TEMPLATE LIST BOX */}
+      <div
+        style={{
+          width: 200,
+          height: "calc(100vh - 32px)",
+          overflowY: "auto"
+        }}
+        className="bg-white rounded-xl shadow p-2 flex flex-col gap-2"
+      >
         <div className="font-bold text-center">Templates</div>
-
         {templates.map(t => (
           <button
             key={t.url}
             onClick={() => setTemplate(t.url)}
             style={{
-              padding: 4,
-              borderRadius: 6,
               border: template === t.url ? "2px solid #2563eb" : "1px solid #ccc",
+              borderRadius: 6,
+              padding: 4,
               background: "white",
               cursor: "pointer"
             }}
           >
-            <img
-              src={t.url}
-              alt={t.name}
-              style={{ width: "100%", display: "block" }}
-            />
+            <img src={t.url} alt="" style={{ width: "100%", display: "block" }} />
           </button>
         ))}
       </div>
 
-      {/* RIGHT – CONTENT */}
+      {/* MAIN AREA */}
       <div className="flex-1">
 
         {/* CONTROLS */}
-        <div className="bg-white rounded-xl shadow p-3 mb-4 flex flex-wrap items-center gap-4">
+        <div className="bg-white rounded-xl shadow p-3 mb-4 flex gap-4 items-center flex-wrap">
+
           <input type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])} />
 
           <label className="flex items-center gap-2">
@@ -271,19 +228,34 @@ export default function A4Composer() {
             <strong>{fontSize}px</strong>
           </label>
 
-          <button onClick={resetAll}>Reset</button>
-          <button onClick={() => exportPDF(true)}>Preview</button>
-          <button onClick={() => exportPDF(false)}>Download</button>
+          <button
+            onClick={resetAll}
+            className="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700"
+          >
+            Reset
+          </button>
+
+          <button
+            onClick={() => exportPDF(true)}
+            className="px-4 py-2 rounded text-white bg-gray-700 hover:bg-gray-800"
+          >
+            Preview
+          </button>
+
+          <button
+            onClick={() => exportPDF(false)}
+            className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Download
+          </button>
         </div>
 
-        {/* A4 PAGES */}
+        {/* A4 */}
         <div className="flex flex-col items-center gap-10">
           {pages.map((html, i) => (
-            <div
-              key={i}
-              className="a4 relative bg-white shadow-xl"
-              style={{ width: A4_WIDTH, height: A4_HEIGHT }}
-            >
+            <div key={i} className="a4 relative bg-white shadow-xl"
+              style={{ width: A4_WIDTH, height: A4_HEIGHT }}>
+
               {template && (
                 <img
                   src={template}
