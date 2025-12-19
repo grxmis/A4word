@@ -96,7 +96,7 @@ function DraggableResizableBox({
 export default function A4Composer() {
 
   const [template, setTemplate] = useState(null);
-  const [templateName, setTemplateName] = useState("Επιλέξτε εικόνα...");
+  const [templateName, setTemplateName] = useState("Επιλέξτε template...");
   const [docName, setDocName] = useState("Επιλέξτε .docx...");
   const [docHtml, setDocHtml] = useState("");
   const [pages, setPages] = useState([]);
@@ -107,9 +107,18 @@ export default function A4Composer() {
   const [box, setBox] = useState({ x: 80, y: 120, width: 630, height: 850 });
   const measureRef = useRef(null);
 
+  // Template URLs από public/templates
+  const templates = [
+    { name: "Template 1", url: "/templates/template1.png" },
+    { name: "Template 2", url: "/templates/template2.png" },
+    { name: "Template 3", url: "/templates/template3.png" },
+    { name: "Template 4", url: "/templates/template4.png" },
+    { name: "Template 5", url: "/templates/template5.png" }
+  ];
+
   /* =========================
        Load external libs
-  ========================= */
+  ========================== */
   useEffect(() => {
     ["mammoth.browser.min.js", "html2canvas.min.js", "jspdf.umd.min.js"]
       .forEach(src => {
@@ -124,16 +133,7 @@ export default function A4Composer() {
 
   /* =========================
           FILE HANDLERS
-  ========================= */
-  const loadTemplate = file => {
-    if (!file?.type.startsWith("image/")) return;
-    setTemplateName(file.name);
-    const r = new FileReader();
-    r.onload = () => setTemplate(r.result);
-    r.readAsDataURL(file);
-    if (pages.length === 0) setPages([""]);
-  };
-
+  ========================== */
   const loadDoc = async file => {
     if (!file?.name.endsWith(".docx")) return;
     setDocName(file.name);
@@ -145,19 +145,18 @@ export default function A4Composer() {
 
   /* =========================
          DRAG & DROP
-  ========================= */
+  ========================== */
   const onDrop = e => {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
     if (!f) return;
-    if (f.type.startsWith("image/")) loadTemplate(f);
-    else if (f.name.endsWith(".docx")) loadDoc(f);
+    if (f.name.endsWith(".docx")) loadDoc(f);
   };
 
   /* =========================
         PAGINATION
-  ========================= */
+  ========================== */
   useEffect(() => {
     if (!docHtml || !measureRef.current) return;
 
@@ -187,7 +186,7 @@ export default function A4Composer() {
 
   /* =========================
             PDF
-  ========================= */
+  ========================== */
   const exportPDF = async (preview) => {
     setExporting(true);
     await new Promise(r => setTimeout(r, 200));
@@ -210,7 +209,7 @@ export default function A4Composer() {
 
   /* =========================
               UI
-  ========================= */
+  ========================== */
   return (
     <div
       className="p-4 bg-gray-100 min-h-screen"
@@ -221,7 +220,7 @@ export default function A4Composer() {
 
       {dragging && (
         <div className="fixed inset-0 bg-blue-500/20 border-4 border-dashed border-blue-600 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl font-bold">Ρίξτε αρχείο εδώ</div>
+          <div className="bg-white p-6 rounded-xl font-bold">Ρίξτε αρχείο εδώ (.docx)</div>
         </div>
       )}
 
@@ -235,12 +234,22 @@ export default function A4Composer() {
         </div>
       </header>
 
-      {/* FILES */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <label className="border-2 border-dashed p-3 rounded cursor-pointer">
-          🖼️ {templateName}
-          <input hidden type="file" accept="image/*" onChange={e => loadTemplate(e.target.files[0])}/>
-        </label>
+      {/* TEMPLATE SCROLLABLE GALLERY */}
+      <div className="mb-6 overflow-x-auto flex gap-4 p-2 bg-white rounded shadow">
+        {templates.map(t => (
+          <div
+            key={t.name}
+            className={`cursor-pointer border-4 rounded ${template === t.url ? "border-blue-600" : "border-transparent"}`}
+            onClick={() => { setTemplate(t.url); setTemplateName(t.name); }}
+          >
+            <img src={t.url} alt={t.name} className="h-40 w-auto object-cover rounded" />
+            <div className="text-center mt-1 font-bold">{t.name}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* FILE DOCX */}
+      <div className="grid grid-cols-1 gap-4 mb-6">
         <label className="border-2 border-dashed p-3 rounded cursor-pointer">
           📄 {docName}
           <input hidden type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])}/>
