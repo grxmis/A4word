@@ -22,13 +22,8 @@ function DraggableResizableBox({
       const dy = e.clientY - start.current.my;
 
       if (drag) {
-        onUpdate({
-          ...start.current.box,
-          x: start.current.box.x + dx,
-          y: start.current.box.y + dy
-        });
+        onUpdate({ ...start.current.box, x: start.current.box.x + dx, y: start.current.box.y + dy });
       }
-
       if (resize) {
         onUpdate({
           ...start.current.box,
@@ -38,10 +33,7 @@ function DraggableResizableBox({
       }
     };
 
-    const stop = () => {
-      setDrag(false);
-      setResize(false);
-    };
+    const stop = () => { setDrag(false); setResize(false); };
 
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", stop);
@@ -71,7 +63,6 @@ function DraggableResizableBox({
       }}
     >
       {children}
-
       {enabled && (
         <div
           className="resize"
@@ -108,18 +99,10 @@ export default function A4Composer() {
   const [exporting, setExporting] = useState(false);
   const [libsReady, setLibsReady] = useState(false);
 
-  const [box, setBox] = useState({
-    x: 80,
-    y: 120,
-    width: 630,
-    height: 850
-  });
-
+  const [box, setBox] = useState({ x: 80, y: 120, width: 630, height: 850 });
   const measureRef = useRef(null);
 
-  /* ===============================
-      LOAD EXTERNAL LIBRARIES
-================================ */
+  /* Load external libs */
   useEffect(() => {
     let loaded = 0;
     [
@@ -129,37 +112,21 @@ export default function A4Composer() {
     ].forEach(src => {
       const s = document.createElement("script");
       s.src = src;
-      s.onload = () => {
-        loaded++;
-        if (loaded === 3) setLibsReady(true);
-      };
+      s.onload = () => { if (++loaded === 3) setLibsReady(true); };
       document.body.appendChild(s);
     });
   }, []);
 
-  /* ===============================
-            TEMPLATES
-================================ */
-  const templates = [1, 2, 3, 4, 5].map(i => ({
+  const templates = [1,2,3,4,5].map(i => ({
     name: `Template ${i}`,
     url: `/templates/template${i}.png`
   }));
 
-  /* ===============================
-        TEMPLATE SELECT
-================================ */
   const selectTemplate = url => {
     setTemplate(url);
-
-    // 🔑 Αν δεν υπάρχει σελίδα → δημιούργησε κενή
-    if (pages.length === 0) {
-      setPages([""]);
-    }
+    if (pages.length === 0) setPages([""]);
   };
 
-  /* ===============================
-          LOAD WORD FILE
-================================ */
   const loadDoc = async file => {
     if (!libsReady || !file) return;
     const buffer = await file.arrayBuffer();
@@ -168,9 +135,6 @@ export default function A4Composer() {
     setPages([result.value]);
   };
 
-  /* ===============================
-            PAGINATION
-================================ */
   useEffect(() => {
     if (!docHtml || !measureRef.current) return;
 
@@ -180,28 +144,22 @@ export default function A4Composer() {
     c.innerHTML = docHtml;
 
     const nodes = Array.from(c.children);
-    let current = [];
-    let result = [];
+    let cur = [], res = [];
     c.innerHTML = "";
 
     for (let n of nodes) {
       c.appendChild(n.cloneNode(true));
       if (c.scrollHeight > box.height) {
         c.innerHTML = "";
-        result.push(current.join(""));
-        current = [n.outerHTML];
+        res.push(cur.join(""));
+        cur = [n.outerHTML];
         c.innerHTML = n.outerHTML;
-      } else {
-        current.push(n.outerHTML);
-      }
+      } else cur.push(n.outerHTML);
     }
-    if (current.length) result.push(current.join(""));
-    setPages(result);
+    if (cur.length) res.push(cur.join(""));
+    setPages(res);
   }, [docHtml, fontSize, box.width, box.height]);
 
-  /* ===============================
-              RESET
-================================ */
   const resetAll = () => {
     setTemplate(null);
     setDocHtml("");
@@ -210,13 +168,9 @@ export default function A4Composer() {
     setBox({ x: 80, y: 120, width: 630, height: 850 });
   };
 
-  /* ===============================
-              PDF
-================================ */
   const exportPDF = async preview => {
     setExporting(true);
     await new Promise(r => setTimeout(r, 200));
-
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "mm", "a4");
 
@@ -226,112 +180,95 @@ export default function A4Composer() {
       if (i) pdf.addPage();
       pdf.addImage(canvas, "JPEG", 0, 0, 210, 297);
     }
-
     setExporting(false);
-    preview
-      ? window.open(URL.createObjectURL(pdf.output("blob")))
-      : pdf.save("document.pdf");
+    preview ? window.open(URL.createObjectURL(pdf.output("blob"))) : pdf.save("document.pdf");
   };
 
-  /* ===============================
-                UI
-================================ */
   return (
-    <div className="min-h-screen bg-gray-100 p-4 flex gap-4">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
 
-      {/* TEMPLATE LIST */}
-      <div
-        className="bg-white rounded-xl shadow p-2 flex flex-col gap-2"
-        style={{ width: 200, height: "calc(100vh - 32px)", overflowY: "auto" }}
-      >
-        <div className="font-bold text-center">Templates</div>
+      {/* HEADER */}
+      <header className="bg-gray-900 text-white p-4 shadow">
+        <h1 className="text-xl font-bold">A4 Composer</h1>
+        <p className="text-sm opacity-80">Create printable A4 documents with templates</p>
+      </header>
 
-        {templates.map(t => (
-          <button
-            key={t.url}
-            onClick={() => selectTemplate(t.url)}
-            style={{
-              border: template === t.url ? "2px solid #2563eb" : "1px solid #ccc",
-              borderRadius: 6,
-              padding: 4,
-              background: "white",
-              cursor: "pointer"
-            }}
-          >
-            <img src={t.url} alt="" style={{ width: "100%", display: "block" }} />
-          </button>
-        ))}
-      </div>
+      {/* MAIN CONTENT */}
+      <div className="flex flex-1 p-4 gap-4">
 
-      {/* MAIN */}
-      <div className="flex-1">
-
-        {/* CONTROLS */}
-        <div className="bg-white rounded-xl shadow p-3 mb-4 flex gap-4 items-center flex-wrap">
-          <input type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])} />
-
-          <label className="flex items-center gap-2">
-            Font
-            <input
-              type="range"
-              min="10"
-              max="40"
-              value={fontSize}
-              onChange={e => setFontSize(+e.target.value)}
-            />
-            <strong>{fontSize}px</strong>
-          </label>
-
-          <button className="px-4 py-2 rounded text-white bg-red-600" onClick={resetAll}>
-            Reset
-          </button>
-
-          <button className="px-4 py-2 rounded text-white bg-gray-700" onClick={() => exportPDF(true)}>
-            Preview
-          </button>
-
-          <button className="px-4 py-2 rounded text-white bg-blue-600" onClick={() => exportPDF(false)}>
-            Download
-          </button>
+        {/* TEMPLATE LIST */}
+        <div
+          className="bg-white rounded-xl shadow p-2 flex flex-col gap-2"
+          style={{ width: 200, overflowY: "auto" }}
+        >
+          <div className="font-bold text-center">Templates</div>
+          {templates.map(t => (
+            <button
+              key={t.url}
+              onClick={() => selectTemplate(t.url)}
+              style={{
+                border: template === t.url ? "2px solid #2563eb" : "1px solid #ccc",
+                borderRadius: 6,
+                padding: 4,
+                background: "white"
+              }}
+            >
+              <img src={t.url} alt="" style={{ width: "100%", display: "block" }} />
+            </button>
+          ))}
         </div>
 
         {/* WORKSPACE */}
-        <div className="flex flex-col items-center gap-10">
-          {pages.map((html, i) => (
-            <div
-              key={i}
-              className="a4 relative bg-white shadow-xl"
-              style={{ width: A4_WIDTH, height: A4_HEIGHT }}
-            >
-              {template && (
-                <img
-                  src={template}
-                  alt=""
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover"
-                  }}
-                />
-              )}
+        <div className="flex-1">
 
-              <DraggableResizableBox
-                {...box}
-                onUpdate={setBox}
-                disabled={i > 0}
-                hideBorder={exporting}
-              >
-                <div
-                  style={{ fontSize, lineHeight: 1.4 }}
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              </DraggableResizableBox>
-            </div>
-          ))}
+          {/* CONTROLS */}
+          <div className="bg-white rounded-xl shadow p-3 mb-4 flex gap-4 flex-wrap items-center">
+            <input type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])} />
+
+            <label className="flex items-center gap-2">
+              Font
+              <input type="range" min="10" max="40" value={fontSize}
+                onChange={e => setFontSize(+e.target.value)} />
+              <strong>{fontSize}px</strong>
+            </label>
+
+            <button className="px-4 py-2 bg-red-600 text-white rounded" onClick={resetAll}>Reset</button>
+            <button className="px-4 py-2 bg-gray-700 text-white rounded" onClick={() => exportPDF(true)}>Preview</button>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => exportPDF(false)}>Download</button>
+          </div>
+
+          {/* A4 */}
+          <div className="flex flex-col items-center gap-10">
+            {pages.map((html, i) => (
+              <div key={i} className="a4 relative bg-white shadow-xl"
+                style={{ width: A4_WIDTH, height: A4_HEIGHT }}>
+
+                {template && (
+                  <img src={template} alt=""
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
+
+                <DraggableResizableBox
+                  {...box}
+                  onUpdate={setBox}
+                  disabled={i > 0}
+                  hideBorder={exporting}
+                >
+                  <div
+                    style={{ fontSize, lineHeight: 1.4 }}
+                    dangerouslySetInnerHTML={{ __html: html }}
+                  />
+                </DraggableResizableBox>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-white text-center py-2 text-sm">
+        codeplaygroundbymyserlis.blogspot.com
+      </footer>
 
       <div ref={measureRef} style={{ position: "absolute", visibility: "hidden" }} />
     </div>
