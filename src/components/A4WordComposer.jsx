@@ -266,9 +266,17 @@ export default function A4Composer() {
       </div>
 
       {/* FOOTER */}
-      <footer className="bg-gray-900 text-white text-center py-2 text-sm">
-        codeplaygroundbymyserlis.blogspot.com
-      </footer>
+      <footer className="bg-gray-900 text-center py-2 text-sm">
+		<a 
+		href="https://codeplaygroundbymyserlis.blogspot.com" 
+		target="_blank" 
+		rel="noopener noreferrer"
+		className="text-yellow-400 hover:text-yellow-200"
+		>
+		codeplaygroundbymyserlis.blogspot.com
+		</a>
+	  </footer>
+
 
       <div ref={measureRef} style={{ position: "absolute", visibility: "hidden" }} />
     </div>
