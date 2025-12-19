@@ -196,7 +196,7 @@ export default function A4Composer() {
       {/* MAIN CONTENT */}
       <div className="flex flex-1 p-4 gap-4">
 
-        {/* TEMPLATE LIST - Compact vertical thumbnail gallery */}
+        {/* TEMPLATE LIST - Vertical scrollable thumbnails */}
         <div className="bg-white rounded-xl shadow p-2 flex flex-col gap-2" style={{ width: 220, maxHeight: "calc(100vh - 32px)", overflowY: "auto" }}>
           <label className="font-bold mb-2 block text-center">Templates</label>
           <div className="flex flex-col gap-2">
@@ -205,11 +205,8 @@ export default function A4Composer() {
                 key={t.url}
                 src={t.url}
                 alt={t.name}
-                className={`cursor-pointer rounded border transition-all duration-200 
-                  ${template === t.url ? "border-blue-600" : "border-gray-300"} 
-                  hover:border-blue-400`}
+                className={`cursor-pointer rounded border ${template === t.url ? "border-blue-600" : "border-gray-300"}`}
                 onClick={() => selectTemplate(t.url)}
-                style={{ height: 80, objectFit: "cover" }}
               />
             ))}
           </div>
