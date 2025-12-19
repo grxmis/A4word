@@ -3,9 +3,9 @@ import React, { useState, useRef, useEffect } from "react";
 const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
 
-/* =========================
-   Draggable & Resizable Box
-========================= */
+/* ===============================
+   DRAGGABLE + RESIZABLE BOX
+================================ */
 function DraggableResizableBox({
   x, y, width, height, onUpdate, children,
   disabled, hideBorder
@@ -13,7 +13,6 @@ function DraggableResizableBox({
   const [drag, setDrag] = useState(false);
   const [resize, setResize] = useState(false);
   const start = useRef({});
-
   const enabled = !disabled && !hideBorder;
 
   useEffect(() => {
@@ -29,16 +28,20 @@ function DraggableResizableBox({
           y: start.current.box.y + dy
         });
       }
+
       if (resize) {
         onUpdate({
           ...start.current.box,
-          width: Math.max(100, start.current.box.width + dx),
-          height: Math.max(100, start.current.box.height + dy)
+          width: Math.max(120, start.current.box.width + dx),
+          height: Math.max(120, start.current.box.height + dy)
         });
       }
     };
 
-    const stop = () => { setDrag(false); setResize(false); };
+    const stop = () => {
+      setDrag(false);
+      setResize(false);
+    };
 
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", stop);
@@ -52,11 +55,13 @@ function DraggableResizableBox({
     <div
       style={{
         position: "absolute",
-        left: x, top: y,
-        width, height,
+        left: x,
+        top: y,
+        width,
+        height,
         border: hideBorder ? "none" : "2px dashed #999",
         cursor: enabled ? "move" : "default",
-        zIndex: 10
+        zIndex: 5
       }}
       onMouseDown={e => {
         if (!enabled) return;
@@ -66,6 +71,7 @@ function DraggableResizableBox({
       }}
     >
       {children}
+
       {enabled && (
         <div
           className="resize"
@@ -90,93 +96,89 @@ function DraggableResizableBox({
   );
 }
 
-/* =========================
-        MAIN APP
-========================= */
+/* ===============================
+            MAIN APP
+================================ */
 export default function A4Composer() {
 
   const [template, setTemplate] = useState(null);
-  const [templateName, setTemplateName] = useState("Επιλέξτε εικόνα...");
-  const [docName, setDocName] = useState("Επιλέξτε .docx...");
   const [docHtml, setDocHtml] = useState("");
   const [pages, setPages] = useState([]);
   const [fontSize, setFontSize] = useState(16);
   const [exporting, setExporting] = useState(false);
-  const [dragging, setDragging] = useState(false);
+  const [libsReady, setLibsReady] = useState(false);
 
-  const [box, setBox] = useState({ x: 80, y: 120, width: 630, height: 850 });
+  const [box, setBox] = useState({
+    x: 80,
+    y: 120,
+    width: 630,
+    height: 850
+  });
+
   const measureRef = useRef(null);
 
-  /* =========================
-       Load external libs
-  ========================= */
+  /* ===============================
+      LOAD EXTERNAL LIBRARIES
+================================ */
   useEffect(() => {
-    ["mammoth.browser.min.js", "html2canvas.min.js", "jspdf.umd.min.js"]
-      .forEach(src => {
-        const s = document.createElement("script");
-        s.src = "https://cdnjs.cloudflare.com/ajax/libs/" +
-          (src.includes("mammoth") ? "mammoth/1.6.0/" :
-           src.includes("html2canvas") ? "html2canvas/1.4.1/" :
-           "jspdf/2.5.1/") + src;
-        document.body.appendChild(s);
-      });
+    let loaded = 0;
+    [
+      "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    ].forEach(src => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = () => {
+        loaded++;
+        if (loaded === 3) setLibsReady(true);
+      };
+      document.body.appendChild(s);
+    });
   }, []);
 
-  /* =========================
-          FILE HANDLERS
-  ========================= */
-  const loadTemplate = file => {
-    if (!file?.type.startsWith("image/")) return;
-    setTemplateName(file.name);
-    const r = new FileReader();
-    r.onload = () => setTemplate(r.result);
-    r.readAsDataURL(file);
-    if (pages.length === 0) setPages([""]);
-  };
+  /* ===============================
+            TEMPLATES
+================================ */
+  const templates = [1, 2, 3, 4, 5].map(i => ({
+    name: `Template ${i}`,
+    url: `/templates/template${i}.png`
+  }));
 
+  /* ===============================
+          LOAD WORD FILE
+================================ */
   const loadDoc = async file => {
-    if (!file?.name.endsWith(".docx")) return;
-    setDocName(file.name);
-    const buf = await file.arrayBuffer();
-    const res = await window.mammoth.convertToHtml({ arrayBuffer: buf });
-    setDocHtml(res.value);
-    setPages([res.value]);
+    if (!libsReady || !file) return;
+    const buffer = await file.arrayBuffer();
+    const result = await window.mammoth.convertToHtml({ arrayBuffer: buffer });
+    setDocHtml(result.value);
+    setPages([result.value]);
   };
 
-  /* =========================
-         DRAG & DROP
-  ========================= */
-  const onDrop = e => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (!f) return;
-    if (f.type.startsWith("image/")) loadTemplate(f);
-    else if (f.name.endsWith(".docx")) loadDoc(f);
-  };
-
-  /* =========================
-        PAGINATION
-  ========================= */
+  /* ===============================
+            PAGINATION
+================================ */
   useEffect(() => {
     if (!docHtml || !measureRef.current) return;
 
-    const container = measureRef.current;
-    container.style.width = box.width + "px";
-    container.style.fontSize = fontSize + "px";
-    container.innerHTML = docHtml;
+    const c = measureRef.current;
+    c.style.width = box.width + "px";
+    c.style.fontSize = fontSize + "px";
+    c.innerHTML = docHtml;
 
-    const nodes = Array.from(container.children);
-    let current = [], result = [];
+    const nodes = Array.from(c.children);
+    let current = [];
+    let result = [];
+    c.innerHTML = "";
 
-    container.innerHTML = "";
     for (let n of nodes) {
-      container.appendChild(n.cloneNode(true));
-      if (container.scrollHeight > box.height) {
-        container.innerHTML = "";
+      c.appendChild(n.cloneNode(true));
+      if (c.scrollHeight > box.height) {
+        c.innerHTML = "";
         result.push(current.join(""));
         current = [n.outerHTML];
-        container.innerHTML = n.outerHTML;
+        c.innerHTML = n.outerHTML;
       } else {
         current.push(n.outerHTML);
       }
@@ -185,94 +187,131 @@ export default function A4Composer() {
     setPages(result);
   }, [docHtml, fontSize, box.width, box.height]);
 
-  /* =========================
-            PDF
-  ========================= */
-  const exportPDF = async (preview) => {
+  /* ===============================
+              RESET
+================================ */
+  const resetAll = () => {
+    setTemplate(null);
+    setDocHtml("");
+    setPages([]);
+    setFontSize(16);
+    setBox({ x: 80, y: 120, width: 630, height: 850 });
+  };
+
+  /* ===============================
+              PDF
+================================ */
+  const exportPDF = async preview => {
     setExporting(true);
     await new Promise(r => setTimeout(r, 200));
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "mm", "a4");
 
-    const els = document.querySelectorAll(".a4");
-    for (let i = 0; i < els.length; i++) {
-      const c = await window.html2canvas(els[i], { scale: 2 });
+    const pagesEls = document.querySelectorAll(".a4");
+    for (let i = 0; i < pagesEls.length; i++) {
+      const canvas = await window.html2canvas(pagesEls[i], { scale: 2 });
       if (i) pdf.addPage();
-      pdf.addImage(c, "JPEG", 0, 0, 210, 297);
+      pdf.addImage(canvas, "JPEG", 0, 0, 210, 297);
     }
-    setExporting(false);
 
+    setExporting(false);
     preview
       ? window.open(URL.createObjectURL(pdf.output("blob")))
       : pdf.save("document.pdf");
   };
 
-  /* =========================
-              UI
-  ========================= */
+  /* ===============================
+                UI
+================================ */
   return (
-    <div
-      className="p-4 bg-gray-100 min-h-screen"
-      onDragOver={e => { e.preventDefault(); setDragging(true); }}
-      onDrop={onDrop}
-      onDragLeave={() => setDragging(false)}
-    >
+    <div className="min-h-screen bg-gray-100 p-4 flex gap-4">
 
-      {dragging && (
-        <div className="fixed inset-0 bg-blue-500/20 border-4 border-dashed border-blue-600 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl font-bold">Ρίξτε αρχείο εδώ</div>
-        </div>
-      )}
+      {/* LEFT – TEMPLATES */}
+      <div className="w-48 bg-white rounded-xl shadow p-2 flex flex-col gap-2 overflow-y-auto">
+        <div className="font-bold text-center">Templates</div>
 
-      {/* HEADER */}
-      <header className="bg-white p-4 rounded-xl shadow flex justify-between mb-4">
-        <h1 className="font-black">A4 COMPOSER</h1>
-        <div className="flex gap-2">
-          <button onClick={() => location.reload()} className="px-3 py-2 bg-red-100 rounded">Reset</button>
-          <button onClick={() => exportPDF(true)} className="px-3 py-2 bg-gray-800 text-white rounded">Preview</button>
-          <button onClick={() => exportPDF(false)} className="px-3 py-2 bg-blue-600 text-white rounded">Download</button>
-        </div>
-      </header>
-
-      {/* FILES */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <label className="border-2 border-dashed p-3 rounded cursor-pointer">
-          🖼️ {templateName}
-          <input hidden type="file" accept="image/*" onChange={e => loadTemplate(e.target.files[0])}/>
-        </label>
-        <label className="border-2 border-dashed p-3 rounded cursor-pointer">
-          📄 {docName}
-          <input hidden type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])}/>
-        </label>
-      </div>
-
-      {/* FONT */}
-      <div className="bg-white p-4 rounded mb-6">
-        <input type="range" min="10" max="40" value={fontSize}
-          onChange={e => setFontSize(+e.target.value)} />
-        <div className="text-center font-bold">{fontSize}px</div>
-      </div>
-
-      {/* PAGES */}
-      <div className="flex flex-col items-center gap-10">
-        {pages.map((html, i) => (
-          <div key={i} className="a4 relative bg-white shadow-2xl"
-               style={{ width: A4_WIDTH, height: A4_HEIGHT }}>
-            {template && <img src={template} className="absolute inset-0 w-full h-full object-cover" alt="" />}
-            <DraggableResizableBox
-              {...box}
-              onUpdate={setBox}
-              disabled={i > 0}
-              hideBorder={exporting}
-            >
-              <div
-                style={{ fontSize, lineHeight: 1.4 }}
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            </DraggableResizableBox>
-          </div>
+        {templates.map(t => (
+          <button
+            key={t.url}
+            onClick={() => setTemplate(t.url)}
+            style={{
+              padding: 4,
+              borderRadius: 6,
+              border: template === t.url ? "2px solid #2563eb" : "1px solid #ccc",
+              background: "white",
+              cursor: "pointer"
+            }}
+          >
+            <img
+              src={t.url}
+              alt={t.name}
+              style={{ width: "100%", display: "block" }}
+            />
+          </button>
         ))}
+      </div>
+
+      {/* RIGHT – CONTENT */}
+      <div className="flex-1">
+
+        {/* CONTROLS */}
+        <div className="bg-white rounded-xl shadow p-3 mb-4 flex flex-wrap items-center gap-4">
+          <input type="file" accept=".docx" onChange={e => loadDoc(e.target.files[0])} />
+
+          <label className="flex items-center gap-2">
+            Font
+            <input
+              type="range"
+              min="10"
+              max="40"
+              value={fontSize}
+              onChange={e => setFontSize(+e.target.value)}
+            />
+            <strong>{fontSize}px</strong>
+          </label>
+
+          <button onClick={resetAll}>Reset</button>
+          <button onClick={() => exportPDF(true)}>Preview</button>
+          <button onClick={() => exportPDF(false)}>Download</button>
+        </div>
+
+        {/* A4 PAGES */}
+        <div className="flex flex-col items-center gap-10">
+          {pages.map((html, i) => (
+            <div
+              key={i}
+              className="a4 relative bg-white shadow-xl"
+              style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+            >
+              {template && (
+                <img
+                  src={template}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover"
+                  }}
+                />
+              )}
+
+              <DraggableResizableBox
+                {...box}
+                onUpdate={setBox}
+                disabled={i > 0}
+                hideBorder={exporting}
+              >
+                <div
+                  style={{ fontSize, lineHeight: 1.4 }}
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              </DraggableResizableBox>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div ref={measureRef} style={{ position: "absolute", visibility: "hidden" }} />
