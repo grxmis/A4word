@@ -196,26 +196,19 @@ export default function A4Composer() {
       {/* MAIN CONTENT */}
       <div className="flex flex-1 p-4 gap-4">
 
-        {/* TEMPLATE LIST */}
-        <div
-          className="bg-white rounded-xl shadow p-2 flex flex-col gap-2"
-          style={{ width: 200, overflowY: "auto" }}
-        >
-          <div className="font-bold text-center">Templates</div>
-          {templates.map(t => (
-            <button
-              key={t.url}
-              onClick={() => selectTemplate(t.url)}
-              style={{
-                border: template === t.url ? "2px solid #2563eb" : "1px solid #ccc",
-                borderRadius: 6,
-                padding: 4,
-                background: "white"
-              }}
-            >
-              <img src={t.url} alt="" style={{ width: "100%", display: "block" }} />
-            </button>
-          ))}
+        {/* TEMPLATE LIST - Vertical List Box */}
+        <div className="bg-white rounded-xl shadow p-2 flex flex-col gap-2" style={{ width: 220, maxHeight: "calc(100vh - 32px)", overflowY: "auto" }}>
+          <label className="font-bold mb-2 block text-center">Templates</label>
+          <select
+            className="w-full border rounded p-1"
+            value={template || ""}
+            onChange={e => selectTemplate(e.target.value)}
+          >
+            <option value="">-- Επιλέξτε template --</option>
+            {templates.map(t => (
+              <option key={t.url} value={t.url}>{t.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* WORKSPACE */}
@@ -267,16 +260,15 @@ export default function A4Composer() {
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-center py-2 text-sm">
-		<a 
-		href="https://codeplaygroundbymyserlis.blogspot.com" 
-		target="_blank" 
-		rel="noopener noreferrer"
-		className="text-yellow-400 hover:text-yellow-200"
-		>
-		codeplaygroundbymyserlis.blogspot.com
-		</a>
-	  </footer>
-
+        <a 
+          href="https://codeplaygroundbymyserlis.blogspot.com" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-yellow-400 hover:text-yellow-200"
+        >
+          codeplaygroundbymyserlis.blogspot.com
+        </a>
+      </footer>
 
       <div ref={measureRef} style={{ position: "absolute", visibility: "hidden" }} />
     </div>
